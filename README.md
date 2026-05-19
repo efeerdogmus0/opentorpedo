@@ -47,6 +47,7 @@ Start with `quick` or `fast` to verify the pipeline; use `full` for the widest s
 - The second code cell only checks NumPy/SciPy; it does not fetch the repo.
 - Keep the browser tab active while the optimization cell runs; disconnecting the runtime stops execution.
 - If the session resets, run all cells again from the top.
+- If clone fails with `getcwd` / `No such file or directory`, use **Runtime → Restart session**, then run all cells again (the notebook resets the working directory to `/content` before cloning).
 
 ---
 
