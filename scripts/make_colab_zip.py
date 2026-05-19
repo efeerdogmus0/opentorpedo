@@ -17,6 +17,7 @@ INCLUDE_PY = [
     "cad_import.py",
     "teknofest/materials.py",
     "teknofest/spring_limits.py",
+    "teknofest/spring_feasibility.py",
     "teknofest/preset.py",
     "teknofest/grid_search.py",
     "teknofest/find_best.py",

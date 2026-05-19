@@ -215,6 +215,13 @@ def run_optimization(
                     max_free_length=SPRING_MAX_FREE_LENGTH_M,
                     max_wire_diameter=SPRING_MAX_WIRE_DIAMETER_M,
                 )
+                try:
+                    from teknofest.spring_feasibility import MAX_COMPRESSION_RATIO
+
+                    max_comp = spring.free_length * MAX_COMPRESSION_RATIO
+                    spring.compression = min(spring.compression, max_comp)
+                except ImportError:
+                    pass
             except ImportError:
                 spring.clamp_to_limits()
 
@@ -226,6 +233,15 @@ def run_optimization(
 
     def _objective(x: np.ndarray) -> float:
         t_copy, sim = _eval(x)
+        spring = t_copy.launch_spring
+        if spring is not None:
+            try:
+                from teknofest.spring_feasibility import is_producible_spring
+
+                if not is_producible_spring(spring, total_mass_kg=pe.total_mass(t_copy)):
+                    return sign * 1e6
+            except ImportError:
+                pass
         val = obj_fn(t_copy, sim)
         iter_count[0] += 1
         if callback is not None:

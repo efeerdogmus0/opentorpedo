@@ -21,6 +21,7 @@ if str(_ROOT) not in sys.path:
 import physics_engine as pe
 from optimizer import METRIC_FUNCTIONS
 from teknofest.preset import MAX_TOTAL_MASS_KG, create_teknofest_torpedo, default_sim_params
+from teknofest.spring_feasibility import is_producible_spring
 from teknofest.spring_limits import (
     LAUNCH_SPRING_COUNT,
     SPRING_MAX_COIL_DIAMETER_M,
@@ -38,7 +39,7 @@ _PRESETS: dict[str, dict[str, Any]] = {
             "bp": (0.08, 0.14),
             "wire": (0.0015, 0.0020),
             "cd": (0.012, 0.016),
-            "comp": (0.022, 0.032, 0.042),
+            "comp": (0.018, 0.024, 0.030),
         },
         "fixed": {"nc": 8.0, "fl": 0.050},
     },
@@ -50,7 +51,7 @@ _PRESETS: dict[str, dict[str, Any]] = {
             "bp": (0.08, 0.14),
             "wire": (0.0015, 0.0020),
             "cd": (0.012, 0.016),
-            "comp": (0.015, 0.022, 0.030, 0.038, 0.045),
+            "comp": (0.015, 0.022, 0.028, 0.034),
         },
         "fixed": {"nc": 8.0, "fl": 0.050},
     },
@@ -63,21 +64,21 @@ _PRESETS: dict[str, dict[str, Any]] = {
             "wire": (0.0010, 0.0015, 0.0020),
             "cd": (0.010, 0.012, 0.014),
             "nc": (6, 8),
-            "comp": (0.022, 0.032, 0.042),
+            "comp": (0.018, 0.024, 0.030, 0.036),
         },
         "fixed": {"fl": 0.060},
     },
-    # Colab önerilen: 6912 deneme (~15–25 dk), tel ≤2 mm, bobin ≤16 mm, boy ≤60 mm
+    # Colab önerilen, üretilebilir sıkıştırma aralığı
     "full": {
         "grid": {
             "infill": (0.10, 0.12, 0.14, 0.16),
             "bm": (0.0, 0.05, 0.10, 0.15),
             "bp": (0.08, 0.14),
-            "wire": (0.0010, 0.0015, 0.0020),
+            "wire": (0.0012, 0.0015, 0.0018, 0.0020),
             "cd": (0.010, 0.012, 0.014, 0.016),
-            "nc": (6, 8),
+            "nc": (6, 7, 8),
             "fl": (0.050, 0.055, 0.060),
-            "comp": (0.026, 0.038, 0.050),
+            "comp": (0.018, 0.024, 0.030, 0.036),
         },
         "fixed": {},
     },
@@ -142,7 +143,8 @@ def run_grid_search(
 
     print(
         f"Preset={preset} | {n_total} kombinasyon | "
-        f"{LAUNCH_SPRING_COUNT}× paralel yay | tel ≤2 mm | kütle ≤{MAX_TOTAL_MASS_KG*1000:.0f} g",
+        f"{LAUNCH_SPRING_COUNT}× paralel yay | üretilebilir yay filtresi | "
+        f"tel ≤2 mm | kütle ≤{MAX_TOTAL_MASS_KG*1000:.0f} g",
         flush=True,
     )
 
@@ -155,6 +157,8 @@ def run_grid_search(
         _apply(torpedo, h, b, sp, p, fixed)
         m = pe.total_mass(torpedo)
         if m > MAX_TOTAL_MASS_KG:
+            continue
+        if not is_producible_spring(sp, total_mass_kg=m):
             continue
         spd = METRIC_FUNCTIONS["Max Speed (m/s)"](torpedo, sim)
         n_ok += 1
@@ -200,6 +204,10 @@ def run_grid_search(
             "spring_mass_total_g": round(sp.mass * 1000, 2),
             "delta_v_m_s": round(sp.launch_velocity_boost(m), 3),
             "accel_m_s2": round(sp.launch_acceleration(m), 1),
+            "spring_index_D_over_d": round(sp.coil_diameter / sp.wire_diameter, 2),
+            "compression_ratio_percent": round(
+                100.0 * sp.effective_compression / sp.free_length if sp.free_length else 0, 1
+            ),
         },
     }
 

@@ -1,12 +1,12 @@
 {
-  "method": "grid_quick",
-  "preset": "quick",
-  "evaluations": 160,
-  "valid_evaluations": 120,
-  "elapsed_s": 15.7,
-  "max_speed_m_s": 7.33,
-  "total_mass_g": 245.9,
-  "cog_cm": 8.99,
+  "method": "grid_fast",
+  "preset": "fast",
+  "evaluations": 128,
+  "valid_evaluations": 18,
+  "elapsed_s": 2.3,
+  "max_speed_m_s": 5.793,
+  "total_mass_g": 278.2,
+  "cog_cm": 8.69,
   "hull": {
     "infill_percent": 12.0,
     "mass_g": 238.5
@@ -16,14 +16,18 @@
     "position_cm": 8.0
   },
   "spring": {
+    "parallel_count": 4,
     "wire_diameter_mm": 2.0,
-    "coil_diameter_mm": 12.0,
+    "coil_diameter_mm": 16.0,
     "active_coils": 8,
     "free_length_mm": 50.0,
-    "compression_mm": 34.0,
-    "k_N_per_m": 11429.4,
-    "force_N": 388.6,
-    "delta_v_m_s": 7.33,
-    "accel_m_s2": 1580.0
+    "compression_mm": 22.0,
+    "k_total_N_per_m": 19287.1,
+    "k_per_spring_N_per_m": 4821.8,
+    "force_total_N": 424.3,
+    "force_per_spring_N": 106.1,
+    "spring_mass_total_g": 39.67,
+    "delta_v_m_s": 5.793,
+    "accel_m_s2": 1525.4
   }
 }

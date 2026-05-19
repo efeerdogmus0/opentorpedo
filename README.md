@@ -101,6 +101,22 @@ python -m teknofest.main
 | Yay serbest uzunluk | ≤ **60 mm** |
 | Gövde malzemesi | PLA, %10–30 doluluk (arama aralığına göre) |
 
+### Üretilebilir yay filtresi (optimizasyon)
+
+Saçma kombinasyonlar elenir:
+
+| Kontrol | Sınır |
+|---------|--------|
+| Yay endeksi D/d | 4 – 10 |
+| Sıkıştırma / serbest boy | ≤ **%45** |
+| Toplam kuvvet (4 yay) | ≤ **520 N** |
+| Tek yay kuvveti | ≤ **150 N** |
+| Kayma gerilmesi (Wahl) | ≤ **650 MPa** |
+| Yay Δv (sim.) | ≤ **9 m/s** |
+| Burkulma L/D | ≤ 4,5 |
+
+Sabitler: `teknofest/spring_feasibility.py`
+
 ---
 
 ## Çıktı dosyası örneği
