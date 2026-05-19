@@ -1,74 +1,278 @@
 # OpenTorpedo
 
-Design simulation and parameter optimization for a **Teknofest Unmanned Underwater Systems** competition torpedo.
-
-Given a fixed **CAD hull** (STEP), the tool tunes **PLA infill**, **ballast mass and position**, and **four identical parallel launch springs** to maximize simulated speed while respecting mass and manufacturability limits. Heavy grid searches are intended to run on **Google Colab** so local machines are not overloaded.
+Physics-based design simulation and grid optimization for a **Teknofest Unmanned Underwater Systems** competition torpedo. A fixed **STEP hull** defines external geometry; tunable parameters are **PLA infill**, **ballast**, and **four identical parallel compression springs**.
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/efeerdogmus0/opentorpedo/blob/main/notebooks/teknofest_colab.ipynb)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Features
+## Overview
 
-| Component | Description |
-|-----------|-------------|
-| **CAD hull** | Dimensions from bundled `TORPIDO*.stp` (~181 mm length, ~111 mm max diameter) |
-| **Hull mass** | PLA at 1240 kg/m³; infill ratio is a design variable |
-| **Ballast** | Mass (g) and position from nose (cm) for center-of-gravity control |
-| **Launch springs** | Four identical springs in parallel; wire, coil, turns, length, compression |
-| **Simulation** | 3-DOF underwater trajectory; objective: maximum speed |
-| **Feasibility filter** | Rejects unrealistic force, stroke, spring index, and shear stress |
+| Layer | Module | Role |
+|-------|--------|------|
+| Geometry | `cad_import.py` | STEP bounding box → length, diameter, volume, wetted area |
+| Components | `torpedo_model.py` | `CadHull`, `BallastMass`, `LaunchSpring` (×4) |
+| Hydrostatics | `physics_engine.py` | Mass, CoG, buoyancy, drag, lift (optional fins) |
+| Dynamics | `simulator.py` | 3-DOF trajectory (`RK45`) |
+| Search | `teknofest/grid_search.py` | Constrained grid over design vector |
+| Feasibility | `teknofest/spring_feasibility.py` | Manufacturability rejection filter |
+
+**Optimization objective:** maximize simulated peak speed  
+\(\displaystyle v_{\max} = \max_t \|\mathbf{v}(t)\|\)  
+subject to \(m_{\text{total}} \le 0.5\,\text{kg}\) and spring feasibility constraints.
+
+---
+
+## Technical model
+
+### Coordinate system
+
+- Body axis \(x\): nose → tail (meters, from STEP export mm ÷ 1000).
+- Depth \(z\): positive downward (launch from `launch_depth` below the free surface).
+- State vector: \(\mathbf{y} = [x,\, z,\, \theta,\, v_x,\, v_z,\, \omega]^\top\).
+
+### CAD hull and mass
+
+Hull dimensions come from the axis-aligned bounding box of `CARTESIAN_POINT` entities in the STEP file. Displacement volume and wetted area use a **cylinder + ellipsoidal nose** surrogate:
+
+\[
+V_{\text{nose}} = \frac{2}{3}\pi r^2 L_n,\quad
+V_{\text{cyl}} = \pi r^2 L_c,\quad
+V = V_{\text{nose}} + V_{\text{cyl}}
+\]
+
+Printed hull mass (PLA, tunable infill \(\phi\)):
+
+\[
+m_{\text{hull}} = \rho_{\text{PLA}}\,\phi\,V
+\qquad (\rho_{\text{PLA}} = 1240\,\text{kg/m}^3)
+\]
+
+### Center of gravity
+
+Point masses (ballast, springs) and distributed hull mass:
+
+\[
+x_{\text{CoG}} = \frac{\sum_i m_i\, x_i}{\sum_i m_i}
+\]
+
+Ballast is a scalar mass \(m_b\) at position \(x_b\) from the nose.
+
+### Total mass
+
+\[
+m_{\text{total}} = m_{\text{hull}} + m_b + N_s\, m_{\text{spring,wire}}
+\qquad (N_s = 4)
+\]
+
+Spring wire mass per spring (steel, \(\rho = 7850\,\text{kg/m}^3\)):
+
+\[
+m_{\text{spring,wire}} \approx \rho \cdot \frac{\pi d^2}{4} \cdot (n \pi D)
+\]
+
+where \(d\) = wire diameter, \(D\) = mean coil diameter, \(n\) = active coils.
+
+---
+
+### Launch springs (4× parallel, identical)
+
+Each spring is a cylindrical compression spring. Stiffness (one spring, shear modulus \(G \approx 79\,\text{GPa}\)):
+
+\[
+k_1 = \frac{G\, d^4}{8\, D^3\, n}
+\]
+
+Parallel identical springs with common deflection \(\delta\):
+
+\[
+k_{\text{tot}} = N_s\, k_1,\qquad
+F_{\text{tot}} = k_{\text{tot}}\,\delta,\qquad
+F_1 = k_1\,\delta
+\]
+
+Usable stroke is capped by solid height \(h_s \approx n\,d\) and free length \(L_0\):
+
+\[
+\delta = \min\bigl(\delta_{\text{set}},\; L_0 - h_s\bigr),\qquad
+\delta_{\text{set}} \le 0.45\,L_0 \;\text{(feasibility)}
+\]
+
+Elastic energy at release:
+
+\[
+E = N_s \cdot \tfrac{1}{2}\, k_1\, \delta^2
+\]
+
+Ideal velocity increment applied at \(t=0\) (lumped mass, axial added mass \(m_{a,x}\)):
+
+\[
+\Delta v = \sqrt{\frac{2E}{m_0 + m_{a,x}}}
+\]
+
+Initial speed in simulation:
+
+\[
+v_0 = v_{\text{init}} + \Delta v
+\]
+
+#### Wahl shear stress (feasibility, per spring)
+
+Spring index \(C = D/d\). Wahl factor:
+
+\[
+K_w = \frac{4C-1}{4C-2} + \frac{0.615}{C}
+\]
+
+Peak shear stress:
+
+\[
+\tau = K_w \cdot \frac{8 F_1 D}{\pi d^3}
+\qquad (\tau \le 650\,\text{MPa in search filter})
+\]
+
+---
+
+### Hydrodynamics (`physics_engine.py`)
+
+Constants: \(\rho = 1000\,\text{kg/m}^3\), \(\nu = 10^{-6}\,\text{m}^2/\text{s}\), \(g = 9.81\,\text{m/s}^2\).
+
+**Buoyancy / weight**
+
+\[
+F_b = \rho g V,\qquad F_g = m\,g
+\]
+
+**Drag** (reference area \(A_{\text{ref}} = \pi r^2\))
+
+\[
+F_d = \tfrac{1}{2}\rho C_d(v)\, v^2\, A_{\text{ref}}
+\]
+
+\(C_d\) combines ITTC-1957 skin friction with Hoerner form factor and a base-pressure term:
+
+\[
+C_f = \frac{0.075}{(\log_{10} Re - 2)^2},\quad
+Re = \frac{v L}{\nu}
+\]
+
+\[
+k = 1 + 1.5\left(\frac{d}{L}\right)^{1.5} + 7\left(\frac{d}{L}\right)^3
+\]
+
+\[
+C_{d,\text{friction}} = (1+k)\, C_f\, \frac{S_{\text{wet}}}{A_{\text{ref}}}
+\]
+
+**Slender-body lift** (angle of attack \(\alpha\))
+
+\[
+F_{L,\text{body}} = 2\sin\alpha\cos\alpha \cdot \tfrac{1}{2}\rho v^2\, A_{\text{ref}}
+\]
+
+(Fin lift/drag included when fin components exist; Teknofest CAD preset is typically finless.)
+
+**Added mass** (Lamb factors on hull) increases effective inertia in surge and heave; see `added_mass_axial` / `added_mass_lateral` in code.
+
+---
+
+### Trajectory integration (`simulator.py`)
+
+Equations of motion in the inertial frame with pitch \(\theta\); forces projected from body/water axes. Integrated with `scipy.integrate.solve_ivp` (`RK45`, `max_step = 0.01` s).
+
+Terminal events:
+
+- Water surface crossing (\(z \to 0\) from below).
+- Maximum depth limit.
+
+The metric reported to the optimizer is \(\max_t v(t)\) over the simulated interval (default 8 s, launch angle 5°, launch depth 0.5 m).
+
+---
+
+## Design variables and constraints
+
+### Optimized parameters
+
+| Symbol | Parameter | Typical bounds |
+|--------|-----------|----------------|
+| \(\phi\) | PLA infill | 0.10 – 0.20 |
+| \(m_b\) | Ballast mass | 0 – 0.15 kg |
+| \(x_b\) | Ballast position | 0.06 – 0.14 m |
+| \(d\) | Wire diameter | 1.0 – 2.0 mm |
+| \(D\) | Mean coil diameter | 10 – 16 mm |
+| \(n\) | Active coils | 6 – 8 |
+| \(L_0\) | Free length | 50 – 60 mm |
+| \(\delta\) | Compression | 18 – 36 mm |
+
+### Competition / model limits
+
+| Constraint | Value |
+|------------|--------|
+| \(m_{\text{total}}\) | ≤ 500 g |
+| \(d\) | ≤ 2 mm |
+| \(D\) | ≤ 16 mm |
+| \(L_0\) | ≤ 60 mm |
+| \(N_s\) | 4 (fixed) |
+
+### Manufacturability filter (`spring_feasibility.py`)
+
+| Check | Limit |
+|-------|--------|
+| Spring index \(C = D/d\) | 4 – 10 |
+| \(\delta / L_0\) | ≤ 45% |
+| Solid-height margin | \(L_0 - \delta \ge 1.15\, n d\) |
+| \(F_{\text{tot}}\) | ≤ 520 N |
+| \(F_1\) | ≤ 150 N |
+| \(\tau\) (Wahl) | ≤ 650 MPa |
+| \(\Delta v\) | ≤ 9 m/s |
+| \(L_0 / D\) | ≤ 4.5 |
+
+Grid points that fail any check are discarded before simulation.
+
+---
+
+## Grid search presets
+
+| Preset | Combinations | Typical Colab runtime | Use case |
+|--------|--------------|----------------------|----------|
+| `quick` | 96 | ~2 min | Smoke test |
+| `fast` | 128 | ~3 min | Fast local / Colab |
+| `medium` | 2,592 | ~10 min | Moderate coverage |
+| **`standard`** | **5,184** | **~15–20 min** | **Recommended** |
+| `full` | 18,432 | ~45–90 min | Maximum coverage |
+
+```bash
+python -m teknofest.grid_search --preset standard
+```
+
+Output: `configs/teknofest_optimized.json` (geometry, masses, spring forces, simulated \(v_{\max}\)).
 
 ---
 
 ## Quick start (Google Colab)
 
-1. Open the notebook via **Open in Colab** above, or  
-   [notebooks/teknofest_colab.ipynb](notebooks/teknofest_colab.ipynb) on GitHub → **Open in Colab**.
-2. Use **Runtime → Run all** (four code cells, top to bottom).
-3. In cell 3, set `PRESET` (`quick`, `fast`, `medium`, or `full`).
-4. Download `teknofest_optimized.json` from cell 4 and place it in `configs/`.
+1. Open [notebooks/teknofest_colab.ipynb](notebooks/teknofest_colab.ipynb) in Colab (**Runtime → Run all**).
+2. Cell 1 clones this repository into `/content/opentorpedo` (resets cwd to `/content` before clone to avoid Colab path errors on re-run).
+3. Cell 3: `PRESET = "standard"` by default.
+4. Cell 4 downloads `teknofest_optimized.json`.
 
-### Search presets
-
-| Preset | Combinations | Typical runtime (Colab) |
-|--------|--------------|-------------------------|
-| `quick` | 96 | ~2 min |
-| `fast` | 128 | ~3 min |
-| `medium` | 2,592 | ~10 min |
-| **`standard`** | **5,184** | **~15–20 min** (recommended) |
-| `full` | 18,432 | ~45–90 min |
-
-Start with `quick` or `fast` to verify the pipeline. Use **`standard`** for the best balance of coverage and runtime; use `full` only when you need the widest search.
-
-### Colab runtime notes
-
-- The first **code** cell clones this repository from GitHub (`git clone`).
-- The second code cell only checks NumPy/SciPy; it does not fetch the repo.
-- Keep the browser tab active while the optimization cell runs; disconnecting the runtime stops execution.
-- If the session resets, run all cells again from the top.
-- If clone fails with `getcwd` / `No such file or directory`, use **Runtime → Restart session**, then run all cells again (the notebook resets the working directory to `/content` before cloning).
+If clone fails with `getcwd` errors: **Runtime → Restart session**, then run all cells again.
 
 ---
 
 ## Local installation
 
-### Optimization only (no GUI)
-
 ```bash
 git clone https://github.com/efeerdogmus0/opentorpedo.git
 cd opentorpedo
 python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-
 python -m teknofest.grid_search --preset fast
 ```
 
-Output: `configs/teknofest_optimized.json`
-
-### Desktop UI (PyQt6)
+Desktop UI (PyQt6):
 
 ```bash
 pip install -r requirements-gui.txt
@@ -77,36 +281,7 @@ python -m teknofest.main
 
 ---
 
-## Model constraints
-
-| Parameter | Limit |
-|-----------|--------|
-| Total mass | ≤ **500 g** |
-| Spring wire diameter | ≤ **2 mm** (upper bound, optimizable) |
-| Spring mean coil diameter | ≤ **16 mm** |
-| Spring free length | ≤ **60 mm** |
-| Parallel springs | **4** identical springs |
-| Hull material | PLA; infill searched in ~10–20% (preset-dependent) |
-
-### Manufacturability filter
-
-Configurations that fail these checks are skipped during grid search (see `teknofest/spring_feasibility.py`):
-
-| Check | Limit |
-|-------|--------|
-| Spring index \(C = D/d\) | 4 – 10 |
-| Compression / free length | ≤ **45%** |
-| Total launch force (4 springs) | ≤ **520 N** |
-| Force per spring | ≤ **150 N** |
-| Shear stress (Wahl) | ≤ **650 MPa** |
-| Launch Δv from springs (sim.) | ≤ **9 m/s** |
-| Free length / coil diameter (buckling) | ≤ **4.5** |
-
----
-
 ## Example output
-
-`configs/teknofest_optimized.json`:
 
 ```json
 {
@@ -123,12 +298,14 @@ Configurations that fail these checks are skipped during grid search (see `tekno
     "compression_mm": 22.0,
     "force_total_N": 424.3,
     "force_per_spring_N": 106.1,
+    "compression_ratio_percent": 44.0,
+    "spring_index_D_over_d": 8.0,
     "delta_v_m_s": 5.79
   }
 }
 ```
 
-Values are **simulation recommendations** and must be validated with physical tests and official competition rules.
+Simulation values are **design recommendations** only; validate with pool tests and official rules.
 
 ---
 
@@ -136,24 +313,20 @@ Values are **simulation recommendations** and must be validated with physical te
 
 ```
 opentorpedo/
-├── TORPIDO*.stp                 # CAD hull (fixed geometry)
-├── cad_import.py                # STEP → dimensions
-├── torpedo_model.py             # Hull, ballast, spring models
-├── physics_engine.py            # Mass, CoG, buoyancy
-├── simulator.py                 # Trajectory integration
-├── optimizer.py                 # SLSQP for GUI fine-tuning
+├── TORPIDO*.stp
+├── cad_import.py
+├── torpedo_model.py
+├── physics_engine.py
+├── simulator.py
+├── optimizer.py
 ├── teknofest/
-│   ├── grid_search.py           # Grid search (CLI / Colab)
-│   ├── preset.py                # Teknofest torpedo setup
-│   ├── spring_limits.py         # Competition spring bounds
-│   ├── spring_feasibility.py    # Manufacturability checks
-│   └── main.py                  # PyQt UI entry point
-├── notebooks/
-│   └── teknofest_colab.ipynb    # Colab workflow
-├── configs/
-│   └── teknofest_optimized.json
-└── scripts/
-    └── make_colab_zip.py        # Offline Colab bundle
+│   ├── grid_search.py
+│   ├── preset.py
+│   ├── spring_limits.py
+│   ├── spring_feasibility.py
+│   └── main.py
+├── notebooks/teknofest_colab.ipynb
+└── configs/teknofest_optimized.json
 ```
 
 ---
@@ -162,26 +335,26 @@ opentorpedo/
 
 | Command | Description |
 |---------|-------------|
-| `python -m teknofest.grid_search --preset fast` | Local quick search |
-| `python -m teknofest.grid_search --preset full` | Local full search |
+| `python -m teknofest.grid_search --preset standard` | Recommended Colab-equivalent search |
+| `python -m teknofest.grid_search --preset full` | Widest search |
 | `python -m teknofest.run_fast_opt` | Alias for `--preset fast` |
 | `python -m teknofest.find_best` | Alias for `--preset standard` |
-| `python scripts/make_colab_zip.py` | Build `dist/opentorpedo_colab.zip` |
+| `python scripts/make_colab_zip.py` | Offline Colab bundle → `dist/` |
 
 ---
 
+## Development
+
+The **PyQt desktop UI** (`teknofest/ui.py`, `ui_components.py`, `ui_theme.py`) and parts of the tooling were developed with assistance from **[Cursor](https://cursor.com)**. Physics, spring models, feasibility filters, and the Colab pipeline were implemented and reviewed in the same environment.
+
 ## Contributing
 
-Issues and pull requests are welcome on [GitHub](https://github.com/efeerdogmus0/opentorpedo/issues).
+Issues and pull requests: [github.com/efeerdogmus0/opentorpedo/issues](https://github.com/efeerdogmus0/opentorpedo/issues)
 
 ## License
 
 [MIT](LICENSE) — Copyright (c) 2026 Efe Erdoğmuş
 
-## Development
-
-Parts of this project—including the **PyQt desktop UI** (`teknofest/ui.py`, `ui_components.py`, `ui_theme.py`) and supporting tooling—were developed with assistance from **[Cursor](https://cursor.com)** (AI-assisted IDE). Simulation physics, spring models, grid search, and Colab workflow were implemented and reviewed in the same environment.
-
 ## Disclaimer
 
-This software is for education and design support only. Competition rules, safety requirements, and in-water performance must be verified against **official Teknofest documentation** and field testing. The authors provide no warranty for manufacturing or competition results.
+This software is for education and design support. Competition rules, safety, and in-water performance must be verified against **official Teknofest documentation** and field testing. No warranty is provided for manufacturing or competition results.
