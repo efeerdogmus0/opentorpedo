@@ -50,7 +50,7 @@ _PRESETS: dict[str, dict[str, Any]] = {
         },
         "fixed": {"nc": 8.0, "fl": 0.050},
     },
-    # ~650 deneme
+    # ~2.6k deneme
     "medium": {
         "grid": {
             "infill": (0.12, 0.14, 0.16),
@@ -63,7 +63,21 @@ _PRESETS: dict[str, dict[str, Any]] = {
         },
         "fixed": {"fl": 0.060},
     },
-    # Colab önerilen, üretilebilir sıkıştırma aralığı
+    # ~5.2k deneme — Colab önerilen (medium < standard < full)
+    "standard": {
+        "grid": {
+            "infill": (0.12, 0.14, 0.16),
+            "bm": (0.0, 0.05, 0.10, 0.15),
+            "bp": (0.06, 0.10, 0.14),
+            "wire": (0.0012, 0.0015, 0.0020),
+            "cd": (0.010, 0.012, 0.014, 0.016),
+            "nc": (6, 8),
+            "fl": (0.055, 0.060),
+            "comp": (0.022, 0.030, 0.036),
+        },
+        "fixed": {},
+    },
+    # ~18k deneme — en geniş arama
     "full": {
         "grid": {
             "infill": (0.10, 0.12, 0.14, 0.16),
@@ -114,7 +128,7 @@ def run_grid_search(
     """
   Grid araması çalıştırır, sonuç dict döner ve JSON yazar.
 
-  preset: quick | fast | medium | full
+  preset: quick | fast | medium | standard | full
   """
     if preset not in _PRESETS:
         raise ValueError(f"Bilinmeyen preset: {preset!r}. Seçenekler: {list(_PRESETS)}")
@@ -221,7 +235,7 @@ def main() -> None:
         "--preset",
         default="fast",
         choices=list(_PRESETS),
-        help="quick (~96), fast (~160), medium (~1900), full (~6900, Colab)",
+        help="quick|fast|medium|standard (~5k, Colab)|full (~18k)",
     )
     p.add_argument("--root", default=None, help="Proje kök dizini")
     p.add_argument("--progress", type=int, default=50)

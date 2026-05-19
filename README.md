@@ -37,9 +37,10 @@ Given a fixed **CAD hull** (STEP), the tool tunes **PLA infill**, **ballast mass
 | `quick` | 96 | ~2 min |
 | `fast` | 128 | ~3 min |
 | `medium` | 2,592 | ~10 min |
+| **`standard`** | **5,184** | **~15–20 min** (recommended) |
 | `full` | 18,432 | ~45–90 min |
 
-Start with `quick` or `fast` to verify the pipeline; use `full` for the widest search.
+Start with `quick` or `fast` to verify the pipeline. Use **`standard`** for the best balance of coverage and runtime; use `full` only when you need the widest search.
 
 ### Colab runtime notes
 
@@ -164,7 +165,7 @@ opentorpedo/
 | `python -m teknofest.grid_search --preset fast` | Local quick search |
 | `python -m teknofest.grid_search --preset full` | Local full search |
 | `python -m teknofest.run_fast_opt` | Alias for `--preset fast` |
-| `python -m teknofest.find_best` | Alias for `--preset medium` |
+| `python -m teknofest.find_best` | Alias for `--preset standard` |
 | `python scripts/make_colab_zip.py` | Build `dist/opentorpedo_colab.zip` |
 
 ---
