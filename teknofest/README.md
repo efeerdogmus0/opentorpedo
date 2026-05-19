@@ -1,10 +1,8 @@
-# Teknofest modülü
+# Teknofest module
 
-Teknofest torpido ön ayarı, yay sınırları ve grid optimizasyonu.
+Competition preset, spring limits, manufacturability checks, and grid search.
 
-Ana dokümantasyon: [../README.md](../README.md)
-
-**Colab:** [notebooks/teknofest_colab.ipynb](../notebooks/teknofest_colab.ipynb)
+See the [project README](../README.md) for setup and Colab instructions.
 
 ```bash
 python -m teknofest.grid_search --preset fast

@@ -1,9 +1,4 @@
-"""
-Teknofest balast + yay grid araması.
-
-PC için: preset="fast" veya "medium"
-Colab için: preset="full" (daha geniş arama, ~3–8 dk)
-"""
+"""Grid search over ballast and launch-spring parameters (Teknofest preset)."""
 
 from __future__ import annotations
 

@@ -1,88 +1,72 @@
 # OpenTorpedo
 
-**Teknofest İnsansız Su Altı Sistemleri** yarışması için torpido tasarım simülasyonu ve parametre optimizasyonu.
+Design simulation and parameter optimization for a **Teknofest Unmanned Underwater Systems** competition torpedo.
 
-Sabit **CAD gövde** (STEP), ayarlanabilir **PLA doluluk oranı**, **balast kütlesi/konumu** ve **fırlatma yayı** ile toplam kütle sınırı altında maksimum hız hedeflenir. Ağır aramalar **Google Colab** üzerinde çalıştırılabilir; böylece kendi bilgisayarın ısınmaz.
+Given a fixed **CAD hull** (STEP), the tool tunes **PLA infill**, **ballast mass and position**, and **four identical parallel launch springs** to maximize simulated speed while respecting mass and manufacturability limits. Heavy grid searches are intended to run on **Google Colab** so local machines are not overloaded.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/efeerdogmus0/opentorpedo/blob/main/notebooks/teknofest_colab.ipynb)
-
----
-
-## Ne yapar?
-
-| Bileşen | Açıklama |
-|--------|----------|
-| **CAD gövde** | `TORPIDO*.stp` dosyasından boyutlar (uzunluk ~181 mm, max çap ~111 mm) |
-| **Gövde kütlesi** | PLA, yoğunluk 1240 kg/m³, doluluk oranı (infill) ayarlanır |
-| **Balast** | Kütle (g) ve burundan konum (cm) — ağırlık merkezi için |
-| **Fırlatma yayı** | **4 adet** özdeş yay (paralel); tel, bobin, sarım, boy, sıkıştırma → toplam kuvvet ve Δv |
-| **Simülasyon** | 3-DOF su altı yolu; hedef: maksimum hız |
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/efeerdogmus0/opentorpedo/blob/main/notebooks/teknofest_colab.ipynb)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Hızlı başlangıç — Google Colab (önerilen)
+## Features
 
-Optimizasyon PC’de değil, **Colab sunucusunda** koşar.
-
-### 1. Notebook’u aç
-
-- Yukarıdaki **Open in Colab** rozeti, veya  
-- [notebooks/teknofest_colab.ipynb](notebooks/teknofest_colab.ipynb) → Colab’da aç
-
-### 2. Dört kod hücresini sırayla çalıştır
-
-| # | Ne yapar? | Süre (yaklaşık) |
-|---|-----------|------------------|
-| **1** | GitHub’dan repoyu klonlar | ~30 sn |
-| **2** | NumPy / SciPy kontrolü | ~5 sn |
-| **3** | Grid optimizasyonu (`PRESET`) | **2–25 dk** |
-| **4** | Sonucu gösterir, `teknofest_optimized.json` indirir | ~5 sn |
-
-İlk hücre sadece açıklama metnidir; çalıştırmana gerek yok.
-
-### 3. Preset seç (3. hücre)
-
-```python
-PRESET = "quick"   # ~96 deneme, ~2 dk — ilk test
-PRESET = "fast"    # ~160 deneme, ~3 dk — hızlı sonuç
-PRESET = "medium"  # ~1900 deneme, ~8 dk
-PRESET = "full"    # ~6900 deneme, ~15–25 dk — en kapsamlı (Colab)
-```
-
-### 4. JSON’u bilgisayarına al
-
-İndirilen `teknofest_optimized.json` dosyasını proje içinde `configs/` klasörüne koy.
-
-### Colab’ı kapatır mıyım?
-
-| Durum | Sonuç |
-|--------|--------|
-| Sekme **açık**, PC **uyanık** | Optimizasyon devam eder |
-| Sekmeyi / tarayıcıyı **kapattın** | Genelde **durur** |
-| Bilgisayar **uyku** moduna girdi | Kesilebilir |
-
-Yemek molası için: **3. hücre çalışırken sekmeyi açık bırak**, uyku modunu kapat. Kesilirse 1→4 hücrelerini yeniden çalıştır.
+| Component | Description |
+|-----------|-------------|
+| **CAD hull** | Dimensions from bundled `TORPIDO*.stp` (~181 mm length, ~111 mm max diameter) |
+| **Hull mass** | PLA at 1240 kg/m³; infill ratio is a design variable |
+| **Ballast** | Mass (g) and position from nose (cm) for center-of-gravity control |
+| **Launch springs** | Four identical springs in parallel; wire, coil, turns, length, compression |
+| **Simulation** | 3-DOF underwater trajectory; objective: maximum speed |
+| **Feasibility filter** | Rejects unrealistic force, stroke, spring index, and shear stress |
 
 ---
 
-## Yerel kurulum
+## Quick start (Google Colab)
 
-### Sadece optimizasyon (GUI yok)
+1. Open the notebook via **Open in Colab** above, or  
+   [notebooks/teknofest_colab.ipynb](notebooks/teknofest_colab.ipynb) on GitHub → **Open in Colab**.
+2. Use **Runtime → Run all** (four code cells, top to bottom).
+3. In cell 3, set `PRESET` (`quick`, `fast`, `medium`, or `full`).
+4. Download `teknofest_optimized.json` from cell 4 and place it in `configs/`.
+
+### Search presets
+
+| Preset | Combinations | Typical runtime (Colab) |
+|--------|--------------|-------------------------|
+| `quick` | 96 | ~2 min |
+| `fast` | 128 | ~3 min |
+| `medium` | 2,592 | ~10 min |
+| `full` | 18,432 | ~45–90 min |
+
+Start with `quick` or `fast` to verify the pipeline; use `full` for the widest search.
+
+### Colab runtime notes
+
+- The first **code** cell clones this repository from GitHub (`git clone`).
+- The second code cell only checks NumPy/SciPy; it does not fetch the repo.
+- Keep the browser tab active while the optimization cell runs; disconnecting the runtime stops execution.
+- If the session resets, run all cells again from the top.
+
+---
+
+## Local installation
+
+### Optimization only (no GUI)
 
 ```bash
 git clone https://github.com/efeerdogmus0/opentorpedo.git
 cd opentorpedo
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Hafif arama (~160 deneme, PC dostu)
 python -m teknofest.grid_search --preset fast
 ```
 
-Sonuç: `configs/teknofest_optimized.json`
+Output: `configs/teknofest_optimized.json`
 
-### Masaüstü arayüz (PyQt6)
+### Desktop UI (PyQt6)
 
 ```bash
 pip install -r requirements-gui.txt
@@ -91,103 +75,107 @@ python -m teknofest.main
 
 ---
 
-## Yarışma kısıtları (modelde)
+## Model constraints
 
-| Parametre | Sınır |
+| Parameter | Limit |
 |-----------|--------|
-| Toplam kütle | ≤ **500 g** |
-| Yay tel çapı | ≤ **2 mm** (optimize edilebilir, üst sınır) |
-| Yay bobin (orta) çapı | ≤ **16 mm** |
-| Yay serbest uzunluk | ≤ **60 mm** |
-| Gövde malzemesi | PLA, %10–30 doluluk (arama aralığına göre) |
+| Total mass | ≤ **500 g** |
+| Spring wire diameter | ≤ **2 mm** (upper bound, optimizable) |
+| Spring mean coil diameter | ≤ **16 mm** |
+| Spring free length | ≤ **60 mm** |
+| Parallel springs | **4** identical springs |
+| Hull material | PLA; infill searched in ~10–20% (preset-dependent) |
 
-### Üretilebilir yay filtresi (optimizasyon)
+### Manufacturability filter
 
-Saçma kombinasyonlar elenir:
+Configurations that fail these checks are skipped during grid search (see `teknofest/spring_feasibility.py`):
 
-| Kontrol | Sınır |
-|---------|--------|
-| Yay endeksi D/d | 4 – 10 |
-| Sıkıştırma / serbest boy | ≤ **%45** |
-| Toplam kuvvet (4 yay) | ≤ **520 N** |
-| Tek yay kuvveti | ≤ **150 N** |
-| Kayma gerilmesi (Wahl) | ≤ **650 MPa** |
-| Yay Δv (sim.) | ≤ **9 m/s** |
-| Burkulma L/D | ≤ 4,5 |
-
-Sabitler: `teknofest/spring_feasibility.py`
+| Check | Limit |
+|-------|--------|
+| Spring index \(C = D/d\) | 4 – 10 |
+| Compression / free length | ≤ **45%** |
+| Total launch force (4 springs) | ≤ **520 N** |
+| Force per spring | ≤ **150 N** |
+| Shear stress (Wahl) | ≤ **650 MPa** |
+| Launch Δv from springs (sim.) | ≤ **9 m/s** |
+| Free length / coil diameter (buckling) | ≤ **4.5** |
 
 ---
 
-## Çıktı dosyası örneği
+## Example output
 
 `configs/teknofest_optimized.json`:
 
 ```json
 {
-  "max_speed_m_s": 7.33,
-  "total_mass_g": 245.9,
-  "cog_cm": 8.99,
+  "max_speed_m_s": 5.79,
+  "total_mass_g": 278.2,
+  "cog_cm": 8.69,
   "ballast": { "mass_g": 0.0, "position_cm": 8.0 },
   "spring": {
     "parallel_count": 4,
     "wire_diameter_mm": 2.0,
-    "coil_diameter_mm": 12.0,
-    "force_total_N": 1554.4,
-    "force_per_spring_N": 388.6,
-    "delta_v_m_s": 14.66
+    "coil_diameter_mm": 16.0,
+    "active_coils": 8,
+    "free_length_mm": 50.0,
+    "compression_mm": 22.0,
+    "force_total_N": 424.3,
+    "force_per_spring_N": 106.1,
+    "delta_v_m_s": 5.79
   }
 }
 ```
 
-Bu değerler **simülasyon önerisidir**; atış testi ve üretim toleranslarıyla doğrulanmalıdır.
+Values are **simulation recommendations** and must be validated with physical tests and official competition rules.
 
 ---
 
-## Proje yapısı
+## Repository layout
 
 ```
 opentorpedo/
-├── TORPIDO*.stp              # CAD gövde (sabit geometri)
-├── cad_import.py             # STEP → boyutlar
-├── torpedo_model.py          # Gövde, balast, yay modelleri
-├── physics_engine.py         # Kütle, CoG, kaldırma
-├── simulator.py              # Yörünge integrasyonu
-├── optimizer.py              # SLSQP (GUI içi ince ayar)
+├── TORPIDO*.stp                 # CAD hull (fixed geometry)
+├── cad_import.py                # STEP → dimensions
+├── torpedo_model.py             # Hull, ballast, spring models
+├── physics_engine.py            # Mass, CoG, buoyancy
+├── simulator.py                 # Trajectory integration
+├── optimizer.py                 # SLSQP for GUI fine-tuning
 ├── teknofest/
-│   ├── grid_search.py        # Grid arama (Colab / CLI)
-│   ├── preset.py             # Teknofest torpido kurulumu
-│   ├── spring_limits.py      # Yay fiziksel sınırları
-│   └── main.py               # PyQt arayüz
+│   ├── grid_search.py           # Grid search (CLI / Colab)
+│   ├── preset.py                # Teknofest torpedo setup
+│   ├── spring_limits.py         # Competition spring bounds
+│   ├── spring_feasibility.py    # Manufacturability checks
+│   └── main.py                  # PyQt UI entry point
 ├── notebooks/
-│   └── teknofest_colab.ipynb # Colab giriş noktası
+│   └── teknofest_colab.ipynb    # Colab workflow
 ├── configs/
 │   └── teknofest_optimized.json
 └── scripts/
-    └── make_colab_zip.py     # İnternetsiz Colab için zip paketi
+    └── make_colab_zip.py        # Offline Colab bundle
 ```
 
 ---
 
-## Komut özeti
+## CLI reference
 
-| Komut | Açıklama |
-|--------|----------|
-| `python -m teknofest.grid_search --preset fast` | Yerel hızlı arama |
-| `python -m teknofest.grid_search --preset full` | Yerel tam arama (uzun) |
-| `python -m teknofest.run_fast_opt` | `fast` preset kısayolu |
-| `python -m teknofest.find_best` | `medium` preset |
-| `python scripts/make_colab_zip.py` | Colab zip paketi (`dist/`) |
-
----
-
-## Katkı ve lisans
-
-- **Lisans:** [MIT](LICENSE)
-- Hata / öneri için [Issues](https://github.com/efeerdogmus0/opentorpedo/issues) açabilirsin.
+| Command | Description |
+|---------|-------------|
+| `python -m teknofest.grid_search --preset fast` | Local quick search |
+| `python -m teknofest.grid_search --preset full` | Local full search |
+| `python -m teknofest.run_fast_opt` | Alias for `--preset fast` |
+| `python -m teknofest.find_best` | Alias for `--preset medium` |
+| `python scripts/make_colab_zip.py` | Build `dist/opentorpedo_colab.zip` |
 
 ---
 
-## Sorumluluk reddi
+## Contributing
 
-Bu yazılım eğitim ve tasarım desteği içindir. Gerçek yarışma kuralları, güvenlik gereksinimleri ve su testi sonuçları **resmi Teknofest dokümanları** ve saha denemeleriyle doğrulanmalıdır. Yazarlar, üretim veya yarışma performansı için garanti vermez.
+Issues and pull requests are welcome on [GitHub](https://github.com/efeerdogmus0/opentorpedo/issues).
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Efe Erdoğmuş
+
+## Disclaimer
+
+This software is for education and design support only. Competition rules, safety requirements, and in-water performance must be verified against **official Teknofest documentation** and field testing. The authors provide no warranty for manufacturing or competition results.

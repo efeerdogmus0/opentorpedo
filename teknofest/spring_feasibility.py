@@ -1,9 +1,4 @@
-"""
-Üretilebilir / mantıklı yay geometrisi kontrolleri.
-
-Amaç: optimizasyonun imkânsız kuvvet, aşırı sıkıştırma veya imal edilemez
-tel–bobin oranları seçmesini engellemek.
-"""
+"""Manufacturability checks for compression spring geometry."""
 
 from __future__ import annotations
 
