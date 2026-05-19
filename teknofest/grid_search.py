@@ -22,6 +22,7 @@ import physics_engine as pe
 from optimizer import METRIC_FUNCTIONS
 from teknofest.preset import MAX_TOTAL_MASS_KG, create_teknofest_torpedo, default_sim_params
 from teknofest.spring_limits import (
+    LAUNCH_SPRING_COUNT,
     SPRING_MAX_COIL_DIAMETER_M,
     SPRING_MAX_FREE_LENGTH_M,
     SPRING_MAX_WIRE_DIAMETER_M,
@@ -140,7 +141,8 @@ def run_grid_search(
     n_total = len(combos)
 
     print(
-        f"Preset={preset} | {n_total} kombinasyon | tel ≤2 mm | kütle ≤{MAX_TOTAL_MASS_KG*1000:.0f} g",
+        f"Preset={preset} | {n_total} kombinasyon | "
+        f"{LAUNCH_SPRING_COUNT}× paralel yay | tel ≤2 mm | kütle ≤{MAX_TOTAL_MASS_KG*1000:.0f} g",
         flush=True,
     )
 
@@ -185,13 +187,17 @@ def run_grid_search(
             "position_cm": round(b.position * 100, 1),
         },
         "spring": {
+            "parallel_count": int(sp.count),
             "wire_diameter_mm": round(sp.wire_diameter * 1000, 2),
             "coil_diameter_mm": round(sp.coil_diameter * 1000, 1),
             "active_coils": int(round(sp.active_coils)),
             "free_length_mm": round(sp.free_length * 1000, 1),
             "compression_mm": round(sp.effective_compression * 1000, 1),
-            "k_N_per_m": round(sp.spring_constant, 1),
-            "force_N": round(sp.launch_force, 1),
+            "k_total_N_per_m": round(sp.spring_constant, 1),
+            "k_per_spring_N_per_m": round(sp.spring_constant_single, 1),
+            "force_total_N": round(sp.launch_force, 1),
+            "force_per_spring_N": round(sp.launch_force_single, 1),
+            "spring_mass_total_g": round(sp.mass * 1000, 2),
             "delta_v_m_s": round(sp.launch_velocity_boost(m), 3),
             "accel_m_s2": round(sp.launch_acceleration(m), 1),
         },

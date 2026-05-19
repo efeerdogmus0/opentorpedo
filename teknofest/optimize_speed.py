@@ -111,13 +111,15 @@ def main() -> None:
     print(f"Balast        : {ballast.mass * 1000:.1f} g @ {ballast.position * 100:.1f} cm")
 
     if spring:
-        print("\nYay:")
-        print(f"  Tel çapı    : {_fmt_m(spring.wire_diameter)} (sabit)")
+        print(f"\nYay ({spring.count}× paralel, özdeş):")
+        print(f"  Tel çapı    : {_fmt_m(spring.wire_diameter)}")
         print(f"  Orta çap    : {_fmt_m(spring.coil_diameter)}")
         print(f"  Sarım       : {spring.active_coils:.1f}")
         print(f"  Serbest boy : {_fmt_m(spring.free_length)}")
         print(f"  Sıkıştırma  : {_fmt_m(spring.effective_compression)}")
-        print(f"  Δv (yay)    : {spring.launch_velocity_boost(m):.2f} m/s")
+        print(f"  F (toplam)  : {spring.launch_force:.1f} N")
+        print(f"  F (tek yay) : {spring.launch_force_single:.1f} N")
+        print(f"  Δv (4 yay)  : {spring.launch_velocity_boost(m):.2f} m/s")
 
 
 if __name__ == "__main__":

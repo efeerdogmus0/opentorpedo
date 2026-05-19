@@ -1,5 +1,8 @@
 """Physical limits for the Teknofest launch spring."""
 
+# Aynı geometride paralel yay sayısı (fırlatma düzeneği)
+LAUNCH_SPRING_COUNT = 4
+
 # Tel çapı: en fazla 2 mm (optimize edilebilir)
 SPRING_WIRE_MM_MAX = 2.0
 SPRING_MAX_WIRE_DIAMETER_M = SPRING_WIRE_MM_MAX / 1000.0

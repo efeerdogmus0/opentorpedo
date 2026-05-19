@@ -293,7 +293,11 @@ class BallastMass:
 
 @dataclass
 class LaunchSpring:
-    """Helical launch spring — geometry maps to k, force, and launch energy."""
+    """Helical launch spring — geometry maps to k, force, and launch energy.
+
+    ``count`` identical springs in parallel (same stroke): k_total = count * k_one,
+    E_total = count * E_one, F_total = count * F_one.
+    """
     name: str = "Launch spring"
     wire_diameter: float = 0.002
     coil_diameter: float = 0.020
@@ -302,14 +306,21 @@ class LaunchSpring:
     compression: float = 0.030
     position: float = 0.04
     shear_modulus: float = 79e9
+    count: int = 1
 
     @property
-    def spring_constant(self) -> float:
-        """k = G d^4 / (8 D^3 n)."""
+    def spring_constant_single(self) -> float:
+        """k for one spring: G d^4 / (8 D^3 n)."""
         d, D, n = self.wire_diameter, self.coil_diameter, max(self.active_coils, 1.0)
         if D <= 0 or d <= 0:
             return 0.0
         return self.shear_modulus * d ** 4 / (8.0 * D ** 3 * n)
+
+    @property
+    def spring_constant(self) -> float:
+        """Combined stiffness of parallel identical springs."""
+        n = max(int(self.count), 1)
+        return self.spring_constant_single * n
 
     @property
     def installed_length(self) -> float:
@@ -342,15 +353,20 @@ class LaunchSpring:
         self.compression = min(max(self.compression, 0.0), max_comp)
 
     @property
+    def launch_force_single(self) -> float:
+        return self.spring_constant_single * self.effective_compression
+
+    @property
     def launch_force(self) -> float:
-        return self.spring_constant * self.effective_compression
+        return self.launch_force_single * max(int(self.count), 1)
 
     def launch_velocity_boost(self, total_mass: float) -> float:
-        """v = sqrt(2E/m), E = 0.5 k x^2."""
+        """v = sqrt(2E/m), E = count * 0.5 * k_one * x^2."""
         if total_mass <= 0:
             return 0.0
         x = self.effective_compression
-        e = 0.5 * self.spring_constant * x * x
+        n = max(int(self.count), 1)
+        e = n * 0.5 * self.spring_constant_single * x * x
         return math.sqrt(2.0 * e / total_mass)
 
     def launch_acceleration(self, total_mass: float) -> float:
@@ -359,13 +375,17 @@ class LaunchSpring:
         return self.launch_force / total_mass
 
     @property
-    def mass(self) -> float:
-        """Steel wire mass estimate."""
+    def mass_single(self) -> float:
+        """Steel wire mass estimate for one spring."""
         rho = 7850.0
         d, D, n = self.wire_diameter, self.coil_diameter, max(self.active_coils, 1.0)
         wire_len = n * math.pi * D
         vol = math.pi * (d / 2.0) ** 2 * wire_len
         return vol * rho
+
+    @property
+    def mass(self) -> float:
+        return self.mass_single * max(int(self.count), 1)
 
     @property
     def volume(self) -> float:
@@ -389,6 +409,7 @@ class LaunchSpring:
             "free_length": self.free_length,
             "compression": self.compression,
             "position": self.position,
+            "count": self.count,
         }
 
     @classmethod
@@ -401,6 +422,7 @@ class LaunchSpring:
             free_length=d.get("free_length", 0.08),
             compression=d["compression"],
             position=d.get("position", 0.04),
+            count=int(d.get("count", 1)),
         )
 
 

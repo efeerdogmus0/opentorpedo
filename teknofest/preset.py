@@ -8,6 +8,7 @@ from cad_import import CadGeometry, default_teknofest_cad_path, load_cad_geometr
 from torpedo_model import BallastMass, CadHull, LaunchSpring, Torpedo
 from teknofest.materials import DEFAULT_INFILL, PLA_DENSITY, PLA_NAME
 from teknofest.spring_limits import (
+    LAUNCH_SPRING_COUNT,
     SPRING_MAX_COIL_DIAMETER_M,
     SPRING_MAX_COILS,
     SPRING_MAX_COMPRESSION_M,
@@ -54,13 +55,14 @@ def create_teknofest_torpedo(
 
     if with_spring:
         spring = LaunchSpring(
-            name="Launch spring",
+            name=f"Launch spring ×{LAUNCH_SPRING_COUNT}",
             wire_diameter=SPRING_MAX_WIRE_DIAMETER_M,
             coil_diameter=0.014,
             active_coils=8.0,
             free_length=0.050,
             compression=0.022,
             position=geom.length * 0.35,
+            count=LAUNCH_SPRING_COUNT,
         )
         spring.clamp_to_limits(
             max_coil_diameter=SPRING_MAX_COIL_DIAMETER_M,

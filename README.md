@@ -15,7 +15,7 @@ Sabit **CAD gövde** (STEP), ayarlanabilir **PLA doluluk oranı**, **balast küt
 | **CAD gövde** | `TORPIDO*.stp` dosyasından boyutlar (uzunluk ~181 mm, max çap ~111 mm) |
 | **Gövde kütlesi** | PLA, yoğunluk 1240 kg/m³, doluluk oranı (infill) ayarlanır |
 | **Balast** | Kütle (g) ve burundan konum (cm) — ağırlık merkezi için |
-| **Fırlatma yayı** | Tel çapı, bobin çapı, sarım, serbest uzunluk, sıkıştırma → kuvvet ve Δv |
+| **Fırlatma yayı** | **4 adet** özdeş yay (paralel); tel, bobin, sarım, boy, sıkıştırma → toplam kuvvet ve Δv |
 | **Simülasyon** | 3-DOF su altı yolu; hedef: maksimum hız |
 
 ---
@@ -114,13 +114,12 @@ python -m teknofest.main
   "cog_cm": 8.99,
   "ballast": { "mass_g": 0.0, "position_cm": 8.0 },
   "spring": {
+    "parallel_count": 4,
     "wire_diameter_mm": 2.0,
     "coil_diameter_mm": 12.0,
-    "active_coils": 8,
-    "free_length_mm": 50.0,
-    "compression_mm": 34.0,
-    "force_N": 388.6,
-    "delta_v_m_s": 7.33
+    "force_total_N": 1554.4,
+    "force_per_spring_N": 388.6,
+    "delta_v_m_s": 14.66
   }
 }
 ```
