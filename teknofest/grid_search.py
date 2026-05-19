@@ -29,15 +29,15 @@ from teknofest.spring_limits import (
 
 # Her preset: grid dict + opsiyonel sabitler
 _PRESETS: dict[str, dict[str, Any]] = {
-  # ~80 deneme — hızlı test
+  # ~96 deneme — Colab / PC smoke test
     "quick": {
         "grid": {
-            "infill": (0.12, 0.20),
+            "infill": (0.12, 0.18),
             "bm": (0.0, 0.10),
             "bp": (0.08, 0.14),
             "wire": (0.0015, 0.0020),
             "cd": (0.012, 0.016),
-            "comp": (0.015, 0.022, 0.030, 0.038, 0.045),
+            "comp": (0.022, 0.032, 0.042),
         },
         "fixed": {"nc": 8.0, "fl": 0.050},
     },
@@ -66,17 +66,17 @@ _PRESETS: dict[str, dict[str, Any]] = {
         },
         "fixed": {"fl": 0.060},
     },
-    # Colab: ~3500 deneme, tel ≤2 mm, bobin ≤16 mm, boy ≤60 mm
+    # Colab önerilen: 6912 deneme (~15–25 dk), tel ≤2 mm, bobin ≤16 mm, boy ≤60 mm
     "full": {
         "grid": {
             "infill": (0.10, 0.12, 0.14, 0.16),
-            "bm": (0.0, 0.04, 0.08, 0.12, 0.16),
-            "bp": (0.05, 0.08, 0.11, 0.14),
-            "wire": (0.0010, 0.0013, 0.0016, 0.0020),
-            "cd": (0.008, 0.010, 0.012, 0.014, 0.016),
-            "nc": (5, 6, 7, 8),
-            "fl": (0.045, 0.050, 0.055, 0.060),
-            "comp": (0.018, 0.026, 0.034, 0.042, 0.050),
+            "bm": (0.0, 0.05, 0.10, 0.15),
+            "bp": (0.08, 0.14),
+            "wire": (0.0010, 0.0015, 0.0020),
+            "cd": (0.010, 0.012, 0.014, 0.016),
+            "nc": (6, 8),
+            "fl": (0.050, 0.055, 0.060),
+            "comp": (0.026, 0.038, 0.050),
         },
         "fixed": {},
     },
@@ -212,7 +212,7 @@ def main() -> None:
         "--preset",
         default="fast",
         choices=list(_PRESETS),
-        help="quick (~80), fast (~160), medium (~650), full (~3500, Colab)",
+        help="quick (~96), fast (~160), medium (~1900), full (~6900, Colab)",
     )
     p.add_argument("--root", default=None, help="Proje kök dizini")
     p.add_argument("--progress", type=int, default=50)
