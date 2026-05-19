@@ -1,0 +1,29 @@
+{
+  "method": "grid_quick",
+  "preset": "quick",
+  "evaluations": 160,
+  "valid_evaluations": 120,
+  "elapsed_s": 15.7,
+  "max_speed_m_s": 7.33,
+  "total_mass_g": 245.9,
+  "cog_cm": 8.99,
+  "hull": {
+    "infill_percent": 12.0,
+    "mass_g": 238.5
+  },
+  "ballast": {
+    "mass_g": 0.0,
+    "position_cm": 8.0
+  },
+  "spring": {
+    "wire_diameter_mm": 2.0,
+    "coil_diameter_mm": 12.0,
+    "active_coils": 8,
+    "free_length_mm": 50.0,
+    "compression_mm": 34.0,
+    "k_N_per_m": 11429.4,
+    "force_N": 388.6,
+    "delta_v_m_s": 7.33,
+    "accel_m_s2": 1580.0
+  }
+}
