@@ -176,6 +176,10 @@ Issues and pull requests are welcome on [GitHub](https://github.com/efeerdogmus0
 
 [MIT](LICENSE) — Copyright (c) 2026 Efe Erdoğmuş
 
+## Development
+
+Parts of this project—including the **PyQt desktop UI** (`teknofest/ui.py`, `ui_components.py`, `ui_theme.py`) and supporting tooling—were developed with assistance from **[Cursor](https://cursor.com)** (AI-assisted IDE). Simulation physics, spring models, grid search, and Colab workflow were implemented and reviewed in the same environment.
+
 ## Disclaimer
 
 This software is for education and design support only. Competition rules, safety requirements, and in-water performance must be verified against **official Teknofest documentation** and field testing. The authors provide no warranty for manufacturing or competition results.
