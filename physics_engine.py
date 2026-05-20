@@ -246,9 +246,19 @@ def _moi_point(mass: float, centroid: float, cg: float) -> float:
     return mass * d ** 2
 
 
+def _moi_cad_hull(hull: "CadHull", cg: float) -> float:
+    """Pitch MOI of CAD hull approximated as a solid cylinder."""
+    m = hull.mass
+    r = hull.diameter / 2.0
+    L = hull.length
+    i_cm = m * (3.0 * r ** 2 + L ** 2) / 12.0
+    d = hull.centroid_x - cg
+    return i_cm + m * d ** 2
+
+
 def moment_of_inertia(torpedo: "Torpedo", t: float = 0.0) -> float:
     """Total pitch-axis MOI about the current CoG (parallel-axis theorem)."""
-    from torpedo_model import NoseCone, BodyTube, Fin, Motor, BallastMass
+    from torpedo_model import NoseCone, BodyTube, CadHull, Fin, Motor, BallastMass, LaunchSpring
     cg = center_of_gravity(torpedo, t)
     moi = 0.0
     for c in torpedo.components:
@@ -256,12 +266,15 @@ def moment_of_inertia(torpedo: "Torpedo", t: float = 0.0) -> float:
             moi += _moi_nose(c, cg)
         elif isinstance(c, BodyTube):
             moi += _moi_body(c, cg)
+        elif isinstance(c, CadHull):
+            moi += _moi_cad_hull(c, cg)
         elif isinstance(c, Fin):
-            # Treat each fin set as point mass at centroid
             moi += _moi_point(c.mass, c.centroid_x, cg)
         elif isinstance(c, Motor):
             moi += _moi_point(c.mass_at(t), c.centroid_x, cg)
         elif isinstance(c, BallastMass):
+            moi += _moi_point(c.mass, c.centroid_x, cg)
+        elif isinstance(c, LaunchSpring):
             moi += _moi_point(c.mass, c.centroid_x, cg)
     return max(moi, 1e-12)
 

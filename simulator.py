@@ -172,7 +172,11 @@ def _derivatives(
 
     moi = max(pe.moment_of_inertia(torpedo, t), 1e-12)
     t_damp = pe.pitch_damping_moment(torpedo, omega, speed, t)
-    alpha_moment = (f_lift_body + f_lift_fin) * (tc.fin_cp_x - tc.cog0) if tc.has_fins else 0.0
+    # Body lift acts at buoyancy centroid; fin lift at fin CP when present
+    lift_arm_body = pe.center_of_buoyancy(torpedo) - tc.cog0
+    alpha_moment = f_lift_body * lift_arm_body
+    if tc.has_fins:
+        alpha_moment += f_lift_fin * (tc.fin_cp_x - tc.cog0)
     alpha_dot = (alpha_moment + t_damp) / moi
 
     return [vx, vz, omega, ax, az, alpha_dot]

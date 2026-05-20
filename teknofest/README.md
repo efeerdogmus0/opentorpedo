@@ -2,8 +2,10 @@
 
 Competition preset, spring limits, manufacturability checks, and grid search.
 
-See the [project README](../README.md) for setup and Colab instructions.
+- [Project overview](../README.md)
+- [Report summary (TR)](../docs/RAPOR_OZETI_TR.md)
+- [Model assumptions](../docs/MODEL_ASSUMPTIONS.md)
 
 ```bash
-python -m teknofest.grid_search --preset fast
+python -m teknofest.grid_search --preset standard
 ```

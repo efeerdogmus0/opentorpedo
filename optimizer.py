@@ -72,7 +72,8 @@ def _run_sim(torpedo: Torpedo, sim_params: dict) -> SimulationResult:
     spring = torpedo.launch_spring
 
     if v_boost is None and spring is not None:
-        v_boost = spring.launch_velocity_boost(pe.total_mass(torpedo))
+        m_launch = pe.total_mass(torpedo) + pe.added_mass_axial(torpedo)
+        v_boost = spring.launch_velocity_boost(m_launch)
         spring_force = 0.0
 
     return run_simulation(
